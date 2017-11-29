@@ -54,6 +54,14 @@ class GFHubSpot extends GFFeedAddOn {
    * @return bool|void
    */
   public function process_feed( $feed, $entry, $form ) {
+    // Get an API object.
+    $hubspot = $this->get_api();
+    // Set feed meta
+    $feed_meta = $feed['meta'];
+    // Set form GUID
+    $form_guid = $feed_meta['hubspotForm'];
+    // Create a hubspot form object.
+    $hubspot_form = $hubspot->forms()->getById( $form_guid )->data;
 
     $feedName  = $feed['meta']['feedName'];
 
@@ -70,6 +78,16 @@ class GFHubSpot extends GFFeedAddOn {
     }
 
     // Send the values to the third-party service.
+
+    // Add HS Context to form submision.
+
+    // Add hubspot cookie data.
+
+    // Send form to hubspot.
+
+    // $portal_id, $form_guid, $form
+    $hubspot->forms()->submit($hubspot_form->portalId , $form_guid, $merge_vars);
+
   }
 
   /**
@@ -100,12 +118,17 @@ class GFHubSpot extends GFFeedAddOn {
             'class'             => 'medium',
             'feedback_callback' => array( $this, 'is_valid_api_key' )
           ),
-        )
+        ),
       ),
     );
   }
 
   public function is_valid_api_key( $apikey ) {
+    //@todo: Write validation function.
+    return true;
+  }
+
+  public function is_valid_hubspot_ID( $portalID ) {
     //@todo: Write validation function.
     return true;
   }
@@ -149,7 +172,7 @@ class GFHubSpot extends GFFeedAddOn {
             'label'     => __( 'Map Fields', 'gravityformshubspot' ),
             'type'      => 'field_map',
             'field_map' => $this->merge_vars_field_map(),
-            'tooltip'   => '<h6>' . __( 'Map Fields', 'gravityformsmailchimp' ) . '</h6>' . __( 'Associate your MailChimp merge variables to the appropriate Gravity Form fields by selecting.', 'gravityformsmailchimp' ),
+            'tooltip'   => '<h6>' . __( 'Map Fields', 'gravityformsmailchimp' ) . '</h6>' . __( 'Associate your HubSpot form fields to the appropriate Gravity Form fields by selecting.', 'gravityformshubspot' ),
           ),
           array( 'type' => 'save' ),
         )
@@ -165,12 +188,8 @@ class GFHubSpot extends GFFeedAddOn {
   public function feed_list_columns() {
     return array(
       'feedName'  => esc_html__( 'Name', 'gravityformshubspot' ),
-      'hubspot_form' => esc_html__('HubSpot Form', 'gravityformshubspot' ),
+      'hubspot_form_name' => esc_html__('HubSpot Form', 'gravityformshubspot' ),
     );
-  }
-
-  public function get_column_value_hubspot_form_name( $feed ) {
-    return $this->get_form_name( $feed['meta']['hubspotForm'] );
   }
 
   public function settings_hubspot_form( $field, $setting_value = '', $echo = true ) {
@@ -221,6 +240,7 @@ class GFHubSpot extends GFFeedAddOn {
    * @return bool
    */
   public function can_create_feed() {
+    //@todo create function to check api key is valid.
 
     // Get the plugin settings.
     $settings = $this->get_plugin_settings();
@@ -263,73 +283,75 @@ class GFHubSpot extends GFFeedAddOn {
 
     $hubspot = $this->get_api();
     $form_id = $this->get_setting( 'hubspotForm' );
-    $form_fields = $hubspot->forms()->getFields( $form_id )->data;
+    // Initialise field map variable.
     $field_map = array();
+    // Default fields.
+    // Ip address
+    $field_map[] = array(
+      'name' => 'ipAddress',
+      'label' => 'IP Address',
+      'required' => false
+    );
+    // Page url.
+    $field_map[] = array(
+      'name' => 'pageUrl',
+      'label' => 'Page URL',
+      'required' => false,
+    );
 
-    // if ( ! empty( $list_id ) ) {
-    //   try {
-    //     $params = array(
-    //       'id' => array( $list_id ),
-    //     );
-
-    //     $lists = $api->call( 'lists/merge-vars', $params );
-    //   } catch ( Exception $e ) {
-    //     $this->log_error( __METHOD__ . '(): ' . $e->getCode() . ' - ' . $e->getMessage() );
-
-    //     return $field_map;
-    //   }
-
-    //   if ( empty( $lists['data'] ) ) {
-    //     $this->log_error( __METHOD__ . '(): Unable to retrieve list due to ' . $lists['errors'][0]['code'] . ' - ' . $lists['errors'][0]['error'] );
-
-    //     return $field_map;
-    //   }
-    //   $list       = $lists['data'][0];
-    //   $merge_vars = $list['merge_vars'];
-
-    foreach ( $form_fields as $field ) {
-      $field_map[] = array(
-        'name'     => $field->name,
-        'label'    => $field->label,
-        'required' => $field->required,
-      );
-    };
+    if ( !empty( $form_id ) ) {
+      // Get fields for this form.
+      $form_fields = $hubspot->forms()->getFields( $form_id )->data;
+      foreach ( $form_fields as $field ) {
+        $field_map[] = array(
+          'name'     => $field->name,
+          'label'    => $field->label,
+          'required' => $field->required,
+        );
+      };
+    }
 
     return $field_map;
   }
 
+  public function get_column_value_hubspot_form_name( $feed ) {
+    return $this->get_form_name( $feed['meta']['hubspotForm'] );
+  }
+
   private function get_form_name( $form_guid ) {
-    global $_forms;
+     //@ToDo write function to return form name.
 
-    if ( ! isset( $_lists ) ) {
-      $api = $this->get_api();
-      if ( ! is_object( $api ) ) {
-        $this->log_error( __METHOD__ . '(): Failed to set up the API.' );
+    return 'whoo';
 
-        return '';
-      }
-      try {
-        $params = array(
-          'start' => 0,
-          'limit' => 100,
-        );
-        $_lists = $api->call( 'lists/list', $params );
-      } catch ( Exception $e ) {
-        $this->log_debug( __METHOD__ . '(): Could not load MailChimp contact lists. Error ' . $e->getCode() . ' - ' . $e->getMessage() );
+  //   if ( ! isset( $_lists ) ) {
+  //     $api = $this->get_api();
+  //     if ( ! is_object( $api ) ) {
+  //       $this->log_error( __METHOD__ . '(): Failed to set up the API.' );
 
-        return '';
-      }
-    }
+  //       return '';
+  //     }
+  //     try {
+  //       $params = array(
+  //         'start' => 0,
+  //         'limit' => 100,
+  //       );
+  //       $_lists = $api->call( 'lists/list', $params );
+  //     } catch ( Exception $e ) {
+  //       $this->log_debug( __METHOD__ . '(): Could not load MailChimp contact lists. Error ' . $e->getCode() . ' - ' . $e->getMessage() );
 
-    $list_name_array = wp_filter_object_list( $_lists['data'], array( 'id' => $list_id ), 'and', 'name' );
-    if ( $list_name_array ) {
-      $list_names = array_values( $list_name_array );
-      $list_name  = $list_names[0];
-    } else {
-      $list_name = $list_id . ' (' . __( 'Form not found in HubSpot', 'gravityformshubspot' ) . ')';
-    }
+  //       return '';
+  //     }
+  //   }
 
-    return $list_name;
+  //   $list_name_array = wp_filter_object_list( $_lists['data'], array( 'id' => $list_id ), 'and', 'name' );
+  //   if ( $list_name_array ) {
+  //     $list_names = array_values( $list_name_array );
+  //     $list_name  = $list_names[0];
+  //   } else {
+  //     $list_name = $list_id . ' (' . __( 'Form not found in HubSpot', 'gravityformshubspot' ) . ')';
+  //   }
+
+  //   return $list_name;
   }
 
 }
