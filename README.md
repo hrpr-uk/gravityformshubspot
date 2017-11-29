@@ -1,4 +1,4 @@
-MailChimp Sync
+GravityForms HubSpot
 ==============
 
 A WordPress plugin that submits Gravity Forms to hubspot
