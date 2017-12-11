@@ -77,15 +77,12 @@ class GFHubSpot extends GFFeedAddOn {
 
     }
 
-    // Send the values to the third-party service.
-
-    // Add HS Context to form submision.
-
     // Add hubspot cookie data.
+    if ( isset( $_COOKIE['hubspotutk'] ) ) {
+      $merge_vars['hs_context'] = json_encode(array( 'hutk' => $_COOKIE['hubspotutk'] ));
+    }
 
     // Send form to hubspot.
-
-    // $portal_id, $form_guid, $form
     $hubspot->forms()->submit($hubspot_form->portalId , $form_guid, $merge_vars);
 
   }
