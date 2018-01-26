@@ -74,15 +74,29 @@ class GFHubSpot extends GFFeedAddOn {
 
       // Get the field value for the specified field id
       $merge_vars[ $name ] = $this->get_field_value( $form, $entry, $field_id );
+     // Comma seperated values now need to be semi colons
+     if (
+           (substr($name, -3,3) === '__c') &&
+            preg_match('/, /', $merge_vars[ $name ])
+        ) {
+            $merge_vars[ $name ] = str_replace(', ',';', $merge_vars[ $name ]);
+        }
 
     }
 
+    // Send the values to the third-party service.
+
+    // Add HS Context to form submision.
+
     // Add hubspot cookie data.
+
+    // Send form to hubspot.
+
+    // $portal_id, $form_guid, $form
     if ( isset( $_COOKIE['hubspotutk'] ) ) {
       $merge_vars['hs_context'] = json_encode(array( 'hutk' => $_COOKIE['hubspotutk'] ));
     }
 
-    // Send form to hubspot.
     $hubspot->forms()->submit($hubspot_form->portalId , $form_guid, $merge_vars);
 
   }
